@@ -1,0 +1,84 @@
+<script>
+        const responseArea = document.getElementById('response-area');
+        const userInput = document.getElementById('user-query');
+        const submitBtn = document.getElementById('submit-btn');
+
+        function addMessage(text, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+            messageDiv.textContent = text;
+            responseArea.appendChild(messageDiv);
+            messageDiv.scrollIntoView({ behavior: 'smooth' });
+            return messageDiv;
+        }
+
+        function addLoadingIndicator() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'loading';
+            loadingDiv.innerHTML = 'Thinking<span></span><span></span><span></span>';
+            responseArea.appendChild(loadingDiv);
+            loadingDiv.scrollIntoView({ behavior: 'smooth' });
+            return loadingDiv;
+        }
+
+        async function handleSubmit() {
+            const query = userInput.value.trim();
+            if (!query) return;
+
+            // Disable input and button while processing
+            userInput.disabled = true;
+            submitBtn.disabled = true;
+
+            // Add user message
+            addMessage(query, true);
+            userInput.value = '';
+
+            // Add loading indicator
+            const loadingDiv = addLoadingIndicator();
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ query })
+                });
+
+                const data = await response.json();
+                loadingDiv.remove();
+
+                if (data.success) {
+                    addMessage(data.response);
+                } else {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'error';
+                    errorDiv.textContent = 'I apologize, but I encountered an error. Please try again.';
+                    responseArea.appendChild(errorDiv);
+                }
+            } catch (error) {
+                loadingDiv.remove();
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error';
+                errorDiv.textContent = 'Sorry, there was an error processing your request. Please try again.';
+                responseArea.appendChild(errorDiv);
+            } finally {
+                // Re-enable input and button
+                userInput.disabled = false;
+                submitBtn.disabled = false;
+                userInput.focus();
+            }
+        }
+
+        submitBtn.addEventListener('click', handleSubmit);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleSubmit();
+            }
+        });
+
+        // Focus input on page load
+        userInput.focus();
+    </script>
+</body>
+</html>
